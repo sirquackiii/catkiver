@@ -32,7 +32,9 @@ fn parse_ck(input: String) -> Vec<file_entry> {
     let mut buf: Vec<file_entry> = Vec::new();
     let data = input.split('\n');
 
-    if input.len() == 0 {
+    let datavec = data.clone().collect::<Vec<&str>>();
+
+    if datavec.len() <= 2 {
         return buf;
     }
 
@@ -308,8 +310,9 @@ fn main() {
                         .as_str());
                 }
 
-                fs::write("entries.ck", out)
-                    .expect("Could not write to file.");
+                let mut fileRef = fs::OpenOptions::new().append(true).open("entries.catk").expect("Unable to open file");
+                fileRef.write_all(out.as_bytes()).expect("write failed");
+                entries = Vec::new();
             }
 
             _ => println!("Unknown command: {}", data[0]),
