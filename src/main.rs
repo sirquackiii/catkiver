@@ -1,7 +1,11 @@
+use hex;
 use std::io;
 use std::fs;
 use std::io::Write;
+use std::os::unix::fs::chroot;
+use chrono::Datelike;
 use std::process::Command;
+use sha2::{Sha256, Digest};
 
 // CATKIVER
 // archiver for cat images
@@ -10,7 +14,7 @@ use std::process::Command;
 struct date {
     day: u8,
     month: u8,
-    year: i64,
+    year: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -28,6 +32,10 @@ fn parse_ck(input: String) -> Vec<file_entry> {
     let mut buf: Vec<file_entry> = Vec::new();
     let data = input.split('\n');
 
+    if input.len() == 0 {
+        return buf;
+    }
+
     for e in data {
         let split: Vec<&str> = e.split(';').collect();
         let out = file_entry {
@@ -38,7 +46,7 @@ fn parse_ck(input: String) -> Vec<file_entry> {
             date: date {
                 day: split[3].parse::<u8>().unwrap(),
                 month: split[4].parse::<u8>().unwrap(),
-                year: split[5].parse::<i64>().unwrap(),
+                year: split[5].parse::<u64>().unwrap(),
             },
         };
         buf.push(out);
@@ -72,7 +80,7 @@ fn parse_str(inp: Vec<&str>) -> String {
 }
 
 fn main() {
-    let path = "test.ck";
+    let path = "entries.ck";
 
     let header: String = fs::read_to_string(path)
         .expect("Could not read file.");
@@ -80,7 +88,7 @@ fn main() {
     let dir = fs::read_to_string("home.txt")
         .expect("Could not read file.");
 
-    let entries: Vec<file_entry> = parse_ck(header);
+    let mut entries: Vec<file_entry> = parse_ck(header);
 
     let mut loaded_entry: Option<file_entry> = None;
 
@@ -182,13 +190,126 @@ fn main() {
                 } else {
                     let entry = loaded_entry.clone().unwrap();
 
-                    let path = format!("{}/{}", dir, entry.filename);
+                    let path = format!("{}/{}", &dir, entry.filename);
 
                     Command::new("feh")
                         .arg(path)
                         .spawn()
                         .expect("Could not open file.");
                 }
+            }
+
+            "new" => {
+                if data[1] == "url" {
+                    let mut buf: file_entry = file_entry {
+                        filename: String::new(),
+                        donator: String::new(),
+                        desc: String::new(),
+                        hash: String::new(),
+                        date: date {
+                            day: 0,
+                            month: 0,
+                            year: 0,
+                        },
+                    };
+                    let url = data[2].trim();
+
+                    // get filename
+                    let filename = url.split('/').last().unwrap().trim();
+
+                    let punt = format!("{}/{}", &dir, &filename);
+                    let path = punt.trim();
+
+                    // get image from url
+                    Command::new("wget")
+                        .arg(url)
+                        .arg("-O")
+                        .arg(path)
+                        .output()
+                        .expect("Could not download file.");
+
+                    // get hash
+
+                    println!("Getting hash...");
+
+                    std::io::stdout()
+                        .flush()
+                        .unwrap();
+
+                    let file_data = fs::read(path)
+                        .expect("Could not read file.");
+
+                    let mut hasher = Sha256::new();
+                    hasher.update(&file_data);
+
+                    let hash = hex::encode(hasher.finalize());
+
+                    println!("{}", hash);
+
+                    // get date
+                    let time = chrono::Local::now();
+                    let year = time.year();
+                    let month = time.month();
+                    let day = time.day();
+
+                    // get description
+                    let mut desc = String::new();
+
+                    print!("Description: ");
+
+                    std::io::stdout()
+                        .flush()
+                        .unwrap();
+
+                    std::io::stdin()
+                        .read_line(&mut desc)
+                        .expect("Could not receive input.");
+
+                    // get donator
+
+                    let mut donator = String::new();
+
+                    print!("Donator: ");
+
+                    std::io::stdout()
+                        .flush()
+                        .unwrap();
+
+                    std::io::stdin()
+                        .read_line(&mut donator)
+                        .expect("Could not receive input.");
+
+
+                    buf.filename = filename.to_string();
+                    buf.donator = donator.trim().to_string();
+                    buf.desc = desc.trim().to_string();
+                    buf.hash = hash;
+                    buf.date = date {
+                        day: day as u8,
+                        month: month as u8,
+                        year: year as u64,
+                    };
+
+                    entries.push(buf.clone());
+
+                    println!("{:#?}", buf);
+                } else {
+                    println!("Unknown argument: {}", data[1]);
+                }
+            },
+
+            "save" => {
+                let mut out = String::new();
+
+                for e in entries.clone() {
+                    out.push_str(format!(
+                        "{};{};{};{};{};{};{}\n",
+                        e.filename, e.donator, e.desc, e.date.day, e.date.month, e.date.year, e.hash,)
+                        .as_str());
+                }
+
+                fs::write("entries.ck", out)
+                    .expect("Could not write to file.");
             }
 
             _ => println!("Unknown command: {}", data[0]),

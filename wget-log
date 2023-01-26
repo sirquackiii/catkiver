@@ -1,0 +1,11 @@
+--2023-01-25 18:53:56--  https://cdn.discordapp.com/attachments/1065816316126187551/1067232051008393286/selfie.png
+Resolving cdn.discordapp.com (cdn.discordapp.com)... 162.159.134.233, 162.159.135.233, 162.159.133.233, ...
+Connecting to cdn.discordapp.com (cdn.discordapp.com)|162.159.134.233|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 252297 (246K) [image/png]
+Saving to: ‘/home/sirq/Documents/cats/selfie.png’
+
+/home/sirq/Documents/cats/selfie.png                  0%[                                                                                                                   ]       0  --.-KB/s               /home/sirq/Documents/cats/selfie.png                100%[==================================================================================================================>] 246.38K  --.-KB/s    in 0.05s   
+
+2023-01-25 18:53:56 (4.45 MB/s) - ‘/home/sirq/Documents/cats/selfie.png’ saved [252297/252297]
+
