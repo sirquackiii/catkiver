@@ -80,7 +80,7 @@ fn parse_str(inp: Vec<&str>) -> String {
 }
 
 fn main() {
-    let path = "entries.ck";
+    let path = "entries.catk";
 
     let header: String = fs::read_to_string(path)
         .expect("Could not read file.");
